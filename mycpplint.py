@@ -844,7 +844,7 @@ _stat_valid_files = False
 _valid_files_count = 0
 _valid_file_ex = True
 _valid_files = []
-_valid_code_lines_count = 20 
+_valid_code_lines_count = 100 
 
 def Div(x, y):
   if y == 0:
