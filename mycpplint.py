@@ -842,6 +842,8 @@ class _SpacingStat(object):
 _output_file = 'result.csv'
 _stat_valid_files = False
 _valid_files_count = 0
+_valid_file_ex_count = 0
+_valid_files_non_blank_lines_count_sum = 0
 _valid_file_ex = True
 _valid_files = []
 _valid_code_lines_count = 100 
@@ -867,16 +869,23 @@ class _Stat(object):
 
   def PrintValidFiles(self):
     print 'valid files count: %d' % _valid_files_count
-    print _valid_files
+    print 'valid files ex count: %d' % _valid_file_ex_count
+    print 'valid files non blank lines count sum : %d' % _valid_files_non_blank_lines_count_sum
+    #print _valid_files
 
   def WriteFile(self, check_filename, f):
     _is_valid_file = False
     global _valid_files_count
+    global _valid_file_ex_count
+    global _valid_files_non_blank_lines_count_sum
     if _valid_file_ex:
+      _valid_file_ex_count += 1
       if (self.lines_stat.total_count - self.lines_stat.blank_lines_count) >= _valid_code_lines_count:
         _is_valid_file = True
         _valid_files_count += 1
         _valid_files.append(check_filename)
+        non_blank_lines_count = self.lines_stat.total_count - self.lines_stat.blank_lines_count
+        _valid_files_non_blank_lines_count_sum += non_blank_lines_count
         print 'valid file: %s with code lines %d' % (check_filename, self.lines_stat.code_lines_without_comments_count + self.lines_stat.code_lines_with_comments_count)
 
     if not _is_valid_file:
