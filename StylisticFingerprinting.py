@@ -53,6 +53,7 @@ import sre_compile
 import string
 import sys
 import unicodedata
+import platform
 
 _USAGE = """
 Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
@@ -518,7 +519,8 @@ _line_length = 80
 
 # The allowed extensions for file names
 # This is set by --extensions flag.
-_valid_extensions = set(['cc', 'cxx', 'cpp', 'cu', 'cuh', 'c']) # edited by Robert
+_valid_extensions = set(['java']) # edited by Robert
+#_valid_extensions = set(['cc', 'cxx', 'cpp', 'cu', 'cuh', 'c']) # edited by Robert
 #_valid_extensions = set(['cc', 'h', 'cpp', 'cu', 'cuh'])
 
 def ParseNolintSuppressions(filename, raw_line, linenum, error):
@@ -846,7 +848,9 @@ _valid_file_ex_count = 0
 _valid_files_non_blank_lines_count_sum = 0
 _valid_file_ex = True
 _valid_files = []
-_valid_code_lines_count = 100 
+_valid_code_lines_count = 100
+
+
 
 def Div(x, y):
   if y == 0:
@@ -3366,7 +3370,9 @@ def CheckForNamespaceIndentation(filename, nesting_state, clean_lines, line,
     CheckItemIndentationInNamespace(filename, clean_lines.elided,
                                     line, error)
 
-
+processing_func = False
+_func_lines = []
+_func_lines_index = 1
 def CheckForFunctionLengths(filename, clean_lines, linenum,
                             function_state, error):
   """Reports for long function bodies.
@@ -3392,18 +3398,38 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   """
   lines = clean_lines.lines
   line = lines[linenum]
-  joined_line = ''
 
-  starting_func = False
-  regexp = r'(\w(\w|::|\*|\&|\s)*)\('  # decls * & space::name( ...
-  match_result = Match(regexp, line)
-  if match_result:
-    # If the name is all caps and underscores, figure it's a macro and
-    # ignore it, unless it's TEST or TEST_F.
-    function_name = match_result.group(1).split()[-1]
-    if function_name == 'TEST' or function_name == 'TEST_F' or (
-        not Match(r'[A-Z_]+$', function_name)):
-      starting_func = True
+  global processing_func
+  global _func_lines
+  global _func_lines_index
+
+
+  if not processing_func:
+    regexp = r'(\w(\w|\s)*)\((.*)\{$'
+    match_result = Match(regexp, line.strip())
+    if match_result:
+      processing_func = True
+
+
+  if not processing_func:
+      return
+
+  _func_lines.append(line)
+
+
+  if Match(r'^\}\s*$', line.strip()):  # function end
+    processing_func = False
+    newfilename = 'output/'+filename.replace('/', '_')
+    f = open(newfilename + '_' + str(_func_lines_index) + '.java', 'w')
+    _func_lines_index = _func_lines_index + 1
+    for l in _func_lines:
+      f.write(l+'\n')
+    _func_lines = []
+    f.close()
+  return
+
+
+
 
   if starting_func:
     body_found = False
@@ -6558,6 +6584,8 @@ def ProcessFileData(filename, file_extension, lines, error,
   if file_extension == 'h':
     CheckForHeaderGuard(filename, clean_lines, error)
 
+  global  _func_lines_index
+  _func_lines_index = 1
   for line in xrange(clean_lines.NumLines()):
     ProcessLine(filename, file_extension, clean_lines, line,
                 include_state, function_state, nesting_state, error,
@@ -6667,6 +6695,11 @@ def ProcessFile(filename, vlevel, extra_check_functions=[]):
                            arguments: filename, clean_lines, line, error
   """
 
+  file_extension = filename[filename.rfind('.') + 1:]
+
+  if file_extension not in _valid_extensions:
+      return
+
   _SetVerboseLevel(vlevel)
   _BackupFilters()
 
@@ -6701,7 +6734,7 @@ def ProcessFile(filename, vlevel, extra_check_functions=[]):
       else:
         lf_lines.append(linenum + 1)
 
-  except IOError:
+  except IOError, e:
     sys.stderr.write(
         "Skipping input '%s': Can't open for reading\n" % filename)
     _RestoreFilters()
@@ -6846,12 +6879,17 @@ def ParseArguments(args):
   _SetCountingStyle(counting_style)
  
   #added by Robert
+
+  split = '\\'
+  sysname = platform.system()
+  if sysname != 'Windows':
+      split = '/'
   if len(filenames) == 1 and os.path.isdir(filenames[0]):
     root_dir = filenames[0] 
     filenames = []
     for cur_dir, __, cur_dir_filenames in os.walk(root_dir):
       for filename in cur_dir_filenames:
-        filenames.append(cur_dir + '\\' + filename)
+        filenames.append(cur_dir + split + filename)
   #added by Robert end
   return filenames
 
@@ -6879,7 +6917,6 @@ def main():
   f.write(title) 
 
   for filename in filenames:
-    #added by Robert
     global _current_filenmae
     _current_filenmae = filename
     print 'current file name: ' + filename
