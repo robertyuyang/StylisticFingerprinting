@@ -3374,6 +3374,7 @@ def CheckForNamespaceIndentation(filename, nesting_state, clean_lines, line,
 processing_func = False
 _func_lines = []
 _func_lines_index = 1
+_left_braces_count = 0
 def CheckForFunctionLengths(filename, clean_lines, linenum,
                             function_state, error):
   """Reports for long function bodies.
@@ -3403,22 +3404,85 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   global processing_func
   global _func_lines
   global _func_lines_index
+  global _left_braces_count
+  """
+  joined_line = ''
 
+  starting_func = False
+  #regexp = r'(\w(\w|::|\*|\&|\s)*)\('  # decls * & space::name( ...
+  regexp = r'(\w(\w|\s)*)\((.*)\{$'
+  match_result = Match(regexp, line.strip())
+  if match_result:
+    # If the name is all caps and underscores, figure it's a macro and
+    # ignore it, unless it's TEST or TEST_F.
+    function_name = match_result.group(1).split()[-1]
+    if function_name == 'TEST' or function_name == 'TEST_F' or (
+      not Match(r'[A-Z_]+$', function_name)):
+      starting_func = True
 
+  if starting_func:
+    body_found = False
+    for start_linenum in xrange(linenum, clean_lines.NumLines()):
+      start_line = lines[start_linenum]
+      joined_line += ' ' + start_line.lstrip()
+      if Search(r'(;|})', start_line):  # Declarations and trivial functions
+        body_found = True
+        break                              # ... ignore
+      elif Search(r'{', start_line):
+        body_found = True
+        function = Search(r'((\w|:)*)\(', line).group(1)
+        if Match(r'TEST', function):    # Handle TEST... macros
+          parameter_regexp = Search(r'(\(.*\))', joined_line)
+          if parameter_regexp:             # Ignore bad syntax
+            function += parameter_regexp.group(1)
+        else:
+          function += '()'
+        function_state.Begin(function)
+        break
+    if not body_found:
+      # No body for the function (or evidence of a non-function) was found.
+      error(filename, linenum, 'readability/fn_size', 5,
+            'Lint failed to find start of function body.')
+  elif Match(r'^\}\s*$', line.strip()):  # function end
+    function_state.Check(error, filename, clean_lines, linenum) # edited by Robert, arg clean_lines added
+    function_state.End()
+
+  """
+
+  func_start = False
   if not processing_func:
     regexp = r'(\w(\w|\s)*)\((.*)\{$'
     match_result = Match(regexp, line.strip())
     if match_result:
+      func_start = True
       processing_func = True
+      _left_braces_count = 0
+      i = linenum
+      while i >= 0:
+        l = lines[i]
+        if 
+
+
+
 
 
   if not processing_func:
       return
 
+
   _func_lines.append(line)
 
 
-  print linenum;
+  if not func_start:
+    if line.find('{') != -1:
+      _left_braces_count = _left_braces_count + 1
+
+  if line.find('}') != -1:
+    if _left_braces_count > 0:
+      _left_braces_count = _left_braces_count - 1
+      return
+
+#  print linenum;
   if Match(r'^\}\s*$', line.strip()):  # function end
     processing_func = False
     newfilename = 'output/'+filename.replace('/', '_')
@@ -3429,10 +3493,9 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
       f.write('\n')
     _func_lines = []
     f.close()
+
+
   return
-
-
-
 
   if starting_func:
     body_found = False
