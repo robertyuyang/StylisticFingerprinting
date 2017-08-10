@@ -1,2 +1,1 @@
-python mycpplint.py --outputfile=1.csv d:\project\src
 python mycpplint.py --stat_valid_files d:\project\src

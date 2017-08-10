@@ -54,6 +54,7 @@ import string
 import sys
 import unicodedata
 import platform
+import codecs
 
 _USAGE = """
 Syntax: cpplint.py [--verbose=#] [--output=vs7] [--filter=-x,+y,...]
@@ -3396,7 +3397,7 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
     function_state: Current function name and lines in body so far.
     error: The function to call with any errors found.
   """
-  lines = clean_lines.lines
+  lines = clean_lines.raw_lines # edited by Robert
   line = lines[linenum]
 
   global processing_func
@@ -3417,13 +3418,15 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   _func_lines.append(line)
 
 
+  print linenum;
   if Match(r'^\}\s*$', line.strip()):  # function end
     processing_func = False
     newfilename = 'output/'+filename.replace('/', '_')
-    f = open(newfilename + '_' + str(_func_lines_index) + '.java', 'w')
+    f = codecs.open(newfilename + '_' + str(_func_lines_index) + '.java', 'w', 'utf-8')
     _func_lines_index = _func_lines_index + 1
     for l in _func_lines:
-      f.write(l+'\n')
+      f.write(l)
+      f.write('\n')
     _func_lines = []
     f.close()
   return
@@ -6480,6 +6483,12 @@ def ProcessLine(filename, file_extension, clean_lines, line,
                            run on each source line. Each function takes 4
                            arguments: filename, clean_lines, line, error
   """
+
+
+  CheckForFunctionLengths(filename, clean_lines, line, function_state, error)
+  return
+
+
   raw_lines = clean_lines.raw_lines
   ParseNolintSuppressions(filename, raw_lines[line], line, error)
   nesting_state.Update(filename, clean_lines, line, error)
@@ -6578,7 +6587,7 @@ def ProcessFileData(filename, file_extension, lines, error,
   
   CheckForCopyright(filename, lines, error)
 
-  RemoveMultiLineComments(filename, lines, error)
+  #RemoveMultiLineComments(filename, lines, error)
   clean_lines = CleansedLines(lines)
 
   if file_extension == 'h':
