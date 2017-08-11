@@ -3498,6 +3498,9 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
       return
 
 #  print linenum;
+  if not (os.path.exists('output') and os.path.isdir('output')):
+    os.mkdir('output')
+
   if Match(r'^\}\s*$', line.strip()):  # function end
     processing_func = False
     newfilename = 'output/'+filename.replace('/', '_')
