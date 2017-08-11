@@ -3503,6 +3503,10 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
 
   if Match(r'^\}\s*$', line.strip()):  # function end
     processing_func = False
+
+    if len(_func_lines) < 10 or len(_func_lines) > 50:
+      return;
+
     newfilename = 'output/'+filename.replace('/', '_')
     f = codecs.open(newfilename + '_' + str(_func_lines_index) + '.java', 'w', 'utf-8')
     _func_lines_index = _func_lines_index + 1
