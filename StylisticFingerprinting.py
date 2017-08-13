@@ -3456,20 +3456,23 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
     if match_result:
       func_start = True
       processing_func = True
+
+      #search comments before function
       _left_braces_count = 0
       i = linenum - 1
       in_multi_comments = False
       while i >= 0:
+        rawline = lines[i]
         curline = lines[i].strip()
         if in_multi_comments:
-          _func_lines.insert(0, curline)
+          _func_lines.insert(0, rawline)
           if curline.startswith("/*"):
             in_multi_comments = False
 
         elif curline.startswith("@") or curline.startswith("//"):
-          _func_lines.insert(0, curline)
+          _func_lines.insert(0, rawline)
         elif curline.endswith("*/"):
-          _func_lines.insert(0, curline)
+          _func_lines.insert(0, rawline)
           if not curline.startswith("/*"):
             in_multi_comments = True
         else:
