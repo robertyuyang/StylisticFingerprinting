@@ -3405,56 +3405,22 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   global _func_lines
   global _func_lines_index
   global _left_braces_count
-  """
-  joined_line = ''
 
-  starting_func = False
-  #regexp = r'(\w(\w|::|\*|\&|\s)*)\('  # decls * & space::name( ...
-  regexp = r'(\w(\w|\s)*)\((.*)\{$'
-  match_result = Match(regexp, line.strip())
-  if match_result:
-    # If the name is all caps and underscores, figure it's a macro and
-    # ignore it, unless it's TEST or TEST_F.
-    function_name = match_result.group(1).split()[-1]
-    if function_name == 'TEST' or function_name == 'TEST_F' or (
-      not Match(r'[A-Z_]+$', function_name)):
-      starting_func = True
-
-  if starting_func:
-    body_found = False
-    for start_linenum in xrange(linenum, clean_lines.NumLines()):
-      start_line = lines[start_linenum]
-      joined_line += ' ' + start_line.lstrip()
-      if Search(r'(;|})', start_line):  # Declarations and trivial functions
-        body_found = True
-        break                              # ... ignore
-      elif Search(r'{', start_line):
-        body_found = True
-        function = Search(r'((\w|:)*)\(', line).group(1)
-        if Match(r'TEST', function):    # Handle TEST... macros
-          parameter_regexp = Search(r'(\(.*\))', joined_line)
-          if parameter_regexp:             # Ignore bad syntax
-            function += parameter_regexp.group(1)
-        else:
-          function += '()'
-        function_state.Begin(function)
-        break
-    if not body_found:
-      # No body for the function (or evidence of a non-function) was found.
-      error(filename, linenum, 'readability/fn_size', 5,
-            'Lint failed to find start of function body.')
-  elif Match(r'^\}\s*$', line.strip()):  # function end
-    function_state.Check(error, filename, clean_lines, linenum) # edited by Robert, arg clean_lines added
-    function_state.End()
-
-  """
 
   func_start = False
   if not processing_func:
-    regexp = r'(\w(\w|\s)*)\((.*)\{$'
+    regexp = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)\{$'
     match_result = Match(regexp, line.strip())
     if match_result:
       func_start = True
+    elif linenum >= 1 and line.strip() == '{':
+      regexp = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)'
+      if Match(regexp, lines[linenum - 1].strip()):
+        func_start = True
+        _func_lines.insert(0, lines[linenum - 1])
+
+
+    if func_start:
       processing_func = True
       _left_braces_count = 0
       i = linenum - 1
@@ -3504,7 +3470,8 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   if Match(r'^\}\s*$', line.strip()):  # function end
     processing_func = False
 
-    if len(_func_lines) < 10 or len(_func_lines) > 50:
+    if len(_func_lines) < 10 or len(_func_lines) > 150:
+      _func_lines = []
       return;
 
     newfilename = 'output/'+filename.replace('/', '_')
