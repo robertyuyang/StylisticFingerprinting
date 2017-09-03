@@ -3473,7 +3473,7 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   if Match(r'^\}\s*$', line.strip()):  # function end
     processing_func = False
 
-    if len(_func_lines) < 10 or len(_func_lines) > 150:
+    if len(_func_lines) < 10 or len(_func_lines) > 50:
       _func_lines = []
       return;
 
