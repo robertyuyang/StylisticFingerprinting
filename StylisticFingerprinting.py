@@ -6642,7 +6642,7 @@ def ProcessFileData(filename, file_extension, lines, error,
   
   CheckForCopyright(filename, lines, error)
 
-  #RemoveMultiLineComments(filename, lines, error)
+  #RemoveMultiLineComments(filename, lines, error)//edited by Robert
   clean_lines = CleansedLines(lines)
 
   if file_extension == 'h':
