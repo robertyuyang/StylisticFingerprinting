@@ -3398,7 +3398,10 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
     function_state: Current function name and lines in body so far.
     error: The function to call with any errors found.
   """
-  lines = clean_lines.raw_lines # edited by Robert
+  #if filename.find('LoggerTest.java') != -1:
+  #  print 'd'
+  lines = clean_lines.elided # edited by Robert
+  raw_line =clean_lines.raw_lines[linenum]
   line = lines[linenum]
 
   global processing_func
@@ -3413,6 +3416,8 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
     match_result = Match(regexp, line.strip())
     if match_result:
       func_start = True
+      print line
+      print 'processing_func %d' % processing_func
     elif linenum >= 1 and line.strip() == '{':
       regexp = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)'
       if Match(regexp, lines[linenum - 1].strip()):
@@ -3454,16 +3459,17 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
       return
 
 
-  _func_lines.append(line)
+  _func_lines.append(raw_line)
 
 
   if not func_start:
-    if line.endswith('{'):
-      _left_braces_count = _left_braces_count + 1
+    #if line.endswith('{'):
+    if line.find('{') != -1:
+      _left_braces_count = _left_braces_count + line.count('{')
 
-  if line.endswith('}'):
+  if line.find('}') != -1:
     if _left_braces_count > 0:
-      _left_braces_count = _left_braces_count - 1
+      _left_braces_count = _left_braces_count - line.count('}')
       return
 
 #  print linenum;
@@ -6632,6 +6638,8 @@ def ProcessFileData(filename, file_extension, lines, error,
   lines = (['// marker so line numbers and indices both start at 1'] + lines +
            ['// marker so line numbers end in a known way'])
 
+  global processing_func
+  print "%d" % processing_func
   include_state = _IncludeState()
   function_state = _FunctionState()
   nesting_state = NestingState()
@@ -6642,7 +6650,7 @@ def ProcessFileData(filename, file_extension, lines, error,
   
   CheckForCopyright(filename, lines, error)
 
-  #RemoveMultiLineComments(filename, lines, error)//edited by Robert
+  RemoveMultiLineComments(filename, lines, error)#edited by Robert
   clean_lines = CleansedLines(lines)
 
   if file_extension == 'h':
@@ -6838,7 +6846,7 @@ def ProcessFile(filename, vlevel, extra_check_functions=[]):
         Error(filename, linenum, 'whitespace/newline', 1,
               'Unexpected \\r (^M) found; better to use only \\n')
 
-  sys.stderr.write('Done processing %s\n' % filename)
+  #sys.stderr.write('Done processing %s\n' % filename)
   _RestoreFilters()
 
 
@@ -6983,11 +6991,16 @@ def main():
   for filename in filenames:
     global _current_filenmae
     _current_filenmae = filename
+    print '---------------------------------'
     print 'current file name: ' + filename
+    if filename.find('LoggerTest.java') != -1:
+      print 'dd'
+
     global _stat
     _stat = _Stat()
     #added by Robert End
     ProcessFile(filename, _cpplint_state.verbose_level, [ExtraCheckLine])
+    print 'done file name: ' + filename
     #added by Roebrt
     #global _output_file
     #_stat.WriteFile(filename, f)
