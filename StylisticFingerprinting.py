@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 #
 # Copyright (c) 2009 Google Inc. All rights reserved.
@@ -3470,13 +3471,14 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   if line.find('}') != -1:
     if _left_braces_count > 0:
       _left_braces_count = _left_braces_count - line.count('}')
-      return
+      if _left_braces_count != -1:#说明这一行同时还有函数结束的那个右括号
+        return
 
 #  print linenum;
   if not (os.path.exists('output') and os.path.isdir('output')):
     os.mkdir('output')
 
-  if Match(r'^\}\s*$', line.strip()):  # function end
+  if Search(r'\}\s*$', line.strip()):  # function end
     processing_func = False
 
     if len(_func_lines) < 10 or len(_func_lines) > 50:
