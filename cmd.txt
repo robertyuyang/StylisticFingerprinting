@@ -1,1 +1,0 @@
-python mycpplint.py --stat_valid_files d:\project\src

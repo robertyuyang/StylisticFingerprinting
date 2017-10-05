@@ -3458,10 +3458,10 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
 
 
   if not func_start:
-    if line.find('{') != -1:
+    if line.endswith('{'):
       _left_braces_count = _left_braces_count + 1
 
-  if line.find('}') != -1:
+  if line.endswith('}'):
     if _left_braces_count > 0:
       _left_braces_count = _left_braces_count - 1
       return
@@ -6989,8 +6989,8 @@ def main():
     #added by Robert End
     ProcessFile(filename, _cpplint_state.verbose_level, [ExtraCheckLine])
     #added by Roebrt
-    global _output_file
-    _stat.WriteFile(filename, f)
+    #global _output_file
+    #_stat.WriteFile(filename, f)
     #added by Robert end  
   
   f.close()

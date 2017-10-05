@@ -17,6 +17,7 @@ def WalkFiles(input_dir, file_list):
       #print("parent is:" + parent)
       #print("filename is:" + filename)
       #print("the full name of the file is:" + os.path.join(parent,filename))
+
       file_list.append(os.path.join(parent,filename))
 
 
@@ -50,6 +51,7 @@ if (__name__ == '__main__'):
     total_line_count = total_line_count + line_count
 
   average_line_count = total_line_count / file_count
+  print "file_count %d" % file_count
   print "average_line_count %f" % average_line_count
 
   standard_deviation = 0.0
