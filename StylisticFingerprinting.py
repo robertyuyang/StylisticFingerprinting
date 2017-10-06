@@ -3373,6 +3373,7 @@ def CheckForNamespaceIndentation(filename, nesting_state, clean_lines, line,
                                     line, error)
 
 processing_func = False
+_func_body_start_linenum = 0
 _func_lines = []
 _func_lines_index = 1
 _left_braces_count = 0
@@ -3409,6 +3410,7 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   global _func_lines
   global _func_lines_index
   global _left_braces_count
+  global _func_body_start_linenum
 
 
   if line.find('private void processUniqueConstraintHolders(MetadataBuildingContext buildingCon') != -1:
@@ -3416,16 +3418,26 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
 
   func_start = False
   if not processing_func:
-    regexp = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)\{$'
-    newreg = r'^\s*new\s+'
+    regexp_func_with_left_brace = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)\{$'
+    regexp_func_without_left_brace = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)'
+    #newreg = r'^\s*new\s+'
 
-    match_result = Match(regexp, line.strip())
-    match_new_result = Match(newreg, line.strip())
-    if match_result:
+    #match_result = Match(regexp, line.strip())
+    #match_new_result = Match(newreg, line.strip())
+    if Match(regexp_func_with_left_brace, line.strip()):
     #if match_result and (not match_new_result):
       func_start = True
-      print line
-      print 'processing_func %d' % processing_func
+      _func_body_start_linenum = linenum + 1
+    elif Match(regexp_func_without_left_brace, line.strip()):
+      for cur_linenum in range(linenum + 1, clean_lines.num_lines):
+        cur_line = clean_lines.elided[cur_linenum]
+        if Search(r'(;|})', cur_line):  # Declarations and trivial functions
+          break  # ... ignore
+        elif Search(r'{', cur_line):
+          func_start = True
+          _func_body_start_linenum = cur_linenum + 1
+          break
+
     elif linenum >= 1 and line.strip() == '{':
       regexp = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)'
       if Match(regexp, lines[linenum - 1].strip()):
@@ -3434,6 +3446,7 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
 
 
     if func_start:
+      print 'function start: %s processing_func %d' % (line, processing_func)
       processing_func = True
 
       #search comments before function
@@ -3472,7 +3485,7 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
 
   if not func_start:
     #if line.endswith('{'):
-    if line.find('{') != -1:
+    if line.find('{') != -1 and linenum >= _func_body_start_linenum:
       _left_braces_count = _left_braces_count + line.count('{')
 
   if line.find('}') != -1:
