@@ -87,14 +87,52 @@ class OrderMarking:
     file_mark = {}
     WalkFiles(self.input_dir, file_list, '.java')
 
+    self.distincy(file_list)
+
+    marking_file_dict = {}
+
     dir_for_marking = 'dir_for_marking'
     if not (os.path.isdir(dir_for_marking) and os.path.exists(dir_for_marking)):
       os.mkdir(dir_for_marking)
     for file_path in file_list:
       new_file_path = dir_for_marking + os.sep + os.path.basename(file_path)
       self.createFileWithClass(file_path, new_file_path)
+      marking_file_dict[new_file_path] = file_path
 
 
+    print '------pmd start-------'
+    #pmd
+    output_lines = []
+    cmd = './analyzer/pmd-bin-5.8.1/bin/run.sh pmd -d ' + dir_for_marking + ' -R rulesets/java/basic.xml,rulesets/java/design.xml,rulesets/java/braces.xml,rulesets/java/comments.xml,rulesets/java/codesize.xml,rulesets/java/controversial.xml,rulesets/java/naming.xml -f text'
+    output_lines.extend(os.popen(cmd).readlines())
+    for line in output_lines[1:]:#"5","","/Users/robert/Documents/src/python/StylisticFingerprinting/dir_for_marking/java-source_apache-log4j-2.9.1-src_log4j-web_src_test_java_org_apache_logging_log4j_web_WebLookupTest.java_2.java","3","3","publicMethodCommentRequirement Required","Comments","CommentRequired"
+      if line.find('Error while parsing') != -1:
+        print 'ERROR while runing PMD'
+        print line
+        exit(0)
+      file_path_in_result = line[:line.find(':')]
+      file_path_in_result = file_path_in_result[1:len(file_path_in_result) -1]
+      if not file_mark.has_key(file_path_in_result):
+        file_mark[file_path_in_result] = 0
+      file_mark[file_path_in_result] = file_mark[file_path_in_result] + 1
+
+    print '------checkstyle start-------'
+    #checkstyle
+    output_lines = []
+    output_lines.extend(
+      os.popen('java -jar ./analyzer/checkstyle-8.2-all.jar -c /google_checks.xml ' + dir_for_marking).readlines())
+    output_lines.extend(
+      os.popen('java -jar ./analyzer/checkstyle-8.2-all.jar -c /sun_checks.xml ' + dir_for_marking).readlines())
+    for line in output_lines:#[ERROR] /Users/robert/Documents/src/python/StylisticFingerprinting/dir_for_marking/java-source_apache-log4j-2.9.1-src_log4j-web_src_test_java_org_apache_logging_log4j_web_WebLookupTest.java_2.java:0: File does not end with a newline. [NewlineAtEndOfFile]
+      if line.startswith('['):
+        file_path_in_result = line[line.find('] ')+2:line.find(':')]
+        if not file_mark.has_key(file_path_in_result):
+          file_mark[file_path_in_result] = 0
+        file_mark[file_path_in_result] = file_mark[file_path_in_result] + 1
+
+
+
+    '''
     index = 0
     total_file_count = len(file_list)
     for file_path in file_list:
@@ -102,6 +140,9 @@ class OrderMarking:
       index = index + 1
       print "%d / %d" %(index, total_file_count)
 
+    '''
+
+    #sort
     sorted_file_marks = sorted(file_mark.items(), key=lambda x: x[1], reverse=False)
 
     count = len(sorted_file_marks)
@@ -124,7 +165,19 @@ class OrderMarking:
 
 
 
+  def distincy(self, file_list):
+    md5_dict = {}
+    for file_path in file_list:
 
+      md5file = open(file_path, 'rb')
+      md5 = hashlib.md5(md5file.read()).hexdigest()
+      md5file.close()
+      if md5_dict.has_key(md5):
+        print '%s has same md5 with %s' % (file_path, md5_dict[md5])
+        os.remove(file_path)
+        file_list.remove(file_path)
+      else:
+        md5_dict[md5] = file_path
 
 
 
