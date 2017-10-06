@@ -87,7 +87,10 @@ class OrderMarking:
     file_mark = {}
     WalkFiles(self.input_dir, file_list, '.java')
 
+
+    print'-----distincy start from %d files -------' % len(file_list)
     self.distincy(file_list)
+    print'-----distincy end with %d files -------' % len(file_list)
 
     marking_file_dict = {}
 
@@ -97,7 +100,7 @@ class OrderMarking:
     for file_path in file_list:
       new_file_path = dir_for_marking + os.sep + os.path.basename(file_path)
       self.createFileWithClass(file_path, new_file_path)
-      marking_file_dict[new_file_path] = file_path
+      marking_file_dict[os.path.basename(new_file_path)] = file_path
 
 
     print '------pmd start-------'
@@ -109,9 +112,9 @@ class OrderMarking:
       if line.find('Error while parsing') != -1:
         print 'ERROR while runing PMD'
         print line
-        exit(0)
+        continue
       file_path_in_result = line[:line.find(':')]
-      file_path_in_result = file_path_in_result[1:len(file_path_in_result) -1]
+      file_path_in_result = marking_file_dict[os.path.basename(file_path_in_result)]
       if not file_mark.has_key(file_path_in_result):
         file_mark[file_path_in_result] = 0
       file_mark[file_path_in_result] = file_mark[file_path_in_result] + 1
@@ -126,8 +129,11 @@ class OrderMarking:
     for line in output_lines:#[ERROR] /Users/robert/Documents/src/python/StylisticFingerprinting/dir_for_marking/java-source_apache-log4j-2.9.1-src_log4j-web_src_test_java_org_apache_logging_log4j_web_WebLookupTest.java_2.java:0: File does not end with a newline. [NewlineAtEndOfFile]
       if line.startswith('['):
         file_path_in_result = line[line.find('] ')+2:line.find(':')]
+        file_path_in_result = marking_file_dict[os.path.basename(file_path_in_result)]
         if not file_mark.has_key(file_path_in_result):
-          file_mark[file_path_in_result] = 0
+          #file_mark[file_path_in_result] = 0
+          print 'ERROR------------%s does not have pmd marking' % file_path_in_result
+          continue
         file_mark[file_path_in_result] = file_mark[file_path_in_result] + 1
 
 
@@ -148,8 +154,8 @@ class OrderMarking:
     count = len(sorted_file_marks)
     top_file_marks = sorted_file_marks[0: count/4]
     bottom_file_marks = sorted_file_marks[count * 3/4:]
-    print top_file_marks
-    print bottom_file_marks
+    #print top_file_marks
+    #print bottom_file_marks
 
     top_file_dir = self.project + '_top'
     if not (os.path.isdir(top_file_dir) and os.path.exists(top_file_dir)):
@@ -167,13 +173,20 @@ class OrderMarking:
 
   def distincy(self, file_list):
     md5_dict = {}
-    for file_path in file_list:
-
+    for i in range(len(file_list) - 1, -1, -1):
+      file_path = file_list[i]
       md5file = open(file_path, 'rb')
       md5 = hashlib.md5(md5file.read()).hexdigest()
+      if file_path == 'output/java-source_hibernate-orm_hibernate-jcache_src_test_java_org_hibernate_test_domain_EventManager.java_5.java':
+        print file_path
+        print md5
+
+      if file_path == 'output/java-source_hibernate-orm_hibernate-jcache_src_test_java_org_hibernate_test_domain_EventManager.java_5.java':
+        print file_path
+        print md5
       md5file.close()
       if md5_dict.has_key(md5):
-        print '%s has same md5 with %s' % (file_path, md5_dict[md5])
+        print '%s has same md5 with %s with md5 %s' % (file_path, md5_dict[md5], md5)
         os.remove(file_path)
         file_list.remove(file_path)
       else:

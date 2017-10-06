@@ -3411,11 +3411,18 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
   global _left_braces_count
 
 
+  if line.find('private void processUniqueConstraintHolders(MetadataBuildingContext buildingCon') != -1:
+    print 'd'
+
   func_start = False
   if not processing_func:
     regexp = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)\{$'
+    newreg = r'^\s*new\s+'
+
     match_result = Match(regexp, line.strip())
+    match_new_result = Match(newreg, line.strip())
     if match_result:
+    #if match_result and (not match_new_result):
       func_start = True
       print line
       print 'processing_func %d' % processing_func
