@@ -3418,8 +3418,8 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
 
   func_start = False
   if not processing_func:
-    regexp_func_with_left_brace = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)\{$'
-    regexp_func_without_left_brace = r'(\w(\w|\s)*)\s(\w(\w|\s)*)\((.*)'
+    regexp_func_with_left_brace =       r'(\w(\w|<|>|\[|\]|\?|\.|\,|\s)*)\s(\w(\w|\s)*)\((.*)\{$'
+    regexp_func_without_left_brace =    r'(\w(\w|<|>|\[|\]|\?|\.|\,|\s)*)\s(\w(\w|\s)*)\((.*)'
     #newreg = r'^\s*new\s+'
 
     #match_result = Match(regexp, line.strip())
@@ -3429,7 +3429,7 @@ def CheckForFunctionLengths(filename, clean_lines, linenum,
       func_start = True
       _func_body_start_linenum = linenum + 1
     elif Match(regexp_func_without_left_brace, line.strip()):
-      for cur_linenum in range(linenum + 1, clean_lines.num_lines):
+      for cur_linenum in range(linenum, clean_lines.num_lines):
         cur_line = clean_lines.elided[cur_linenum]
         if Search(r'(;|})', cur_line):  # Declarations and trivial functions
           break  # ... ignore

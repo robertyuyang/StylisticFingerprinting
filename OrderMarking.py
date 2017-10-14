@@ -49,6 +49,13 @@ class OrderMarking:
     f.close()
     tmp_file.close()
 
+  def createNewDir(self, dir_path):
+    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+      os.popen('rm -rf '+dir_path)
+      os.mkdir(dir_path)
+    else:
+      os.mkdir(dir_path)
+
   def checkstyleMark(self, file_path):
     violation_count = 0
 
@@ -95,8 +102,9 @@ class OrderMarking:
     marking_file_dict = {}
 
     dir_for_marking = 'dir_for_marking'
-    if not (os.path.isdir(dir_for_marking) and os.path.exists(dir_for_marking)):
-      os.mkdir(dir_for_marking)
+
+    self.createNewDir(dir_for_marking)
+
     for file_path in file_list:
       new_file_path = dir_for_marking + os.sep + os.path.basename(file_path)
       self.createFileWithClass(file_path, new_file_path)
@@ -157,15 +165,15 @@ class OrderMarking:
     #print top_file_marks
     #print bottom_file_marks
 
-    top_file_dir = self.project + '_top'
-    if not (os.path.isdir(top_file_dir) and os.path.exists(top_file_dir)):
-      os.mkdir(top_file_dir)
+    top_file_dir = self.project + '_readable'
+    self.createNewDir(top_file_dir)
+
     for (top_file_path, mark) in top_file_marks:
       shutil.copy(top_file_path, top_file_dir+ os.sep+ os.path.basename(top_file_path))
 
-    bottom_file_dir = self.project + '_bottom'
-    if not (os.path.isdir(bottom_file_dir) and os.path.exists(bottom_file_dir)):
-      os.mkdir(bottom_file_dir)
+    bottom_file_dir = self.project + '_unreadable'
+    self.createNewDir(bottom_file_dir)
+
     for (bottom_file_path, mark) in bottom_file_marks:
       shutil.copy(bottom_file_path, bottom_file_dir+ os.sep+ os.path.basename(bottom_file_path))
 
