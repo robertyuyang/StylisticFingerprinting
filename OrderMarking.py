@@ -23,6 +23,8 @@ def WalkFiles(input_dir, file_list, ex):
       #print("the full name of the file is:" + os.path.join(parent,filename))
       file_list.append(os.path.join(parent,filename))
 
+  print "%d %s files in %s" % (len(file_list), ex, input_dir)
+
 class OrderMarking:
   def __init__(self, args):
     try:
@@ -89,16 +91,8 @@ class OrderMarking:
 
   def markfile(self, file_path):
       return self.checkstyleMark(file_path) + self.pmdMark(file_path)
-  def mark(self):
-    file_list = []
-    file_mark = {}
-    WalkFiles(self.input_dir, file_list, '.java')
 
-
-    print'-----distincy start from %d files -------' % len(file_list)
-    self.distincy(file_list)
-    print'-----distincy end with %d files -------' % len(file_list)
-
+  def markfiles(self, file_list, file_mark):
     marking_file_dict = {}
 
     dir_for_marking = 'dir_for_marking'
@@ -110,13 +104,13 @@ class OrderMarking:
       self.createFileWithClass(file_path, new_file_path)
       marking_file_dict[os.path.basename(new_file_path)] = file_path
 
-
     print '------pmd start-------'
-    #pmd
+    # pmd
     output_lines = []
     cmd = './analyzer/pmd-bin-5.8.1/bin/run.sh pmd -d ' + dir_for_marking + ' -R rulesets/java/basic.xml,rulesets/java/design.xml,rulesets/java/braces.xml,rulesets/java/comments.xml,rulesets/java/codesize.xml,rulesets/java/controversial.xml,rulesets/java/naming.xml -f text'
     output_lines.extend(os.popen(cmd).readlines())
-    for line in output_lines[1:]:#"5","","/Users/robert/Documents/src/python/StylisticFingerprinting/dir_for_marking/java-source_apache-log4j-2.9.1-src_log4j-web_src_test_java_org_apache_logging_log4j_web_WebLookupTest.java_2.java","3","3","publicMethodCommentRequirement Required","Comments","CommentRequired"
+    for line in output_lines[
+                1:]:  # "5","","/Users/robert/Documents/src/python/StylisticFingerprinting/dir_for_marking/java-source_apache-log4j-2.9.1-src_log4j-web_src_test_java_org_apache_logging_log4j_web_WebLookupTest.java_2.java","3","3","publicMethodCommentRequirement Required","Comments","CommentRequired"
       if line.find('Error while parsing') != -1:
         print 'ERROR while runing PMD'
         print line
@@ -128,22 +122,63 @@ class OrderMarking:
       file_mark[file_path_in_result] = file_mark[file_path_in_result] + 1
 
     print '------checkstyle start-------'
-    #checkstyle
+    # checkstyle
     output_lines = []
     output_lines.extend(
       os.popen('java -jar ./analyzer/checkstyle-8.2-all.jar -c /google_checks.xml ' + dir_for_marking).readlines())
     output_lines.extend(
       os.popen('java -jar ./analyzer/checkstyle-8.2-all.jar -c /sun_checks.xml ' + dir_for_marking).readlines())
-    for line in output_lines:#[ERROR] /Users/robert/Documents/src/python/StylisticFingerprinting/dir_for_marking/java-source_apache-log4j-2.9.1-src_log4j-web_src_test_java_org_apache_logging_log4j_web_WebLookupTest.java_2.java:0: File does not end with a newline. [NewlineAtEndOfFile]
+    for line in output_lines:  # [ERROR] /Users/robert/Documents/src/python/StylisticFingerprinting/dir_for_marking/java-source_apache-log4j-2.9.1-src_log4j-web_src_test_java_org_apache_logging_log4j_web_WebLookupTest.java_2.java:0: File does not end with a newline. [NewlineAtEndOfFile]
       if line.startswith('['):
-        file_path_in_result = line[line.find('] ')+2:line.find(':')]
+        file_path_in_result = line[line.find('] ') + 2:line.find(':')]
         file_path_in_result = marking_file_dict[os.path.basename(file_path_in_result)]
         if not file_mark.has_key(file_path_in_result):
-          #file_mark[file_path_in_result] = 0
+          # file_mark[file_path_in_result] = 0
           print 'ERROR------------%s does not have pmd marking' % file_path_in_result
           continue
         file_mark[file_path_in_result] = file_mark[file_path_in_result] + 1
 
+    total_violations_count = 0.0
+    f = open(self.input_dir + '_violations.txt','w')
+    for (k, v) in file_mark.items():
+      f.write(k +','+ str(v)+'\n')
+      total_violations_count = total_violations_count + v
+    f.close()
+
+    print "average rule violation: %f" % (total_violations_count / len(file_mark))
+
+
+  def orderAndMove(self, file_mark):
+    # sort
+    sorted_file_marks = sorted(file_mark.items(), key=lambda x: x[1], reverse=False)
+
+    count = len(sorted_file_marks)
+    top_file_marks = sorted_file_marks[0: count / 4]
+    bottom_file_marks = sorted_file_marks[count * 3 / 4:]
+    # print top_file_marks
+    # print bottom_file_marks
+
+    top_file_dir = self.project + '_readable'
+    self.createNewDir(top_file_dir)
+
+    for (top_file_path, mark) in top_file_marks:
+      shutil.copy(top_file_path, top_file_dir + os.sep + os.path.basename(top_file_path))
+
+    bottom_file_dir = self.project + '_unreadable'
+    self.createNewDir(bottom_file_dir)
+
+    for (bottom_file_path, mark) in bottom_file_marks:
+      shutil.copy(bottom_file_path, bottom_file_dir + os.sep + os.path.basename(bottom_file_path))
+
+  def mark(self):
+    file_list = []
+    WalkFiles(self.input_dir, file_list, '.java')
+
+    self.distincy(file_list)
+
+    file_mark = {}
+    self.markfiles(file_list, file_mark)
+    self.orderAndMove(file_mark)
 
 
     '''
@@ -156,30 +191,13 @@ class OrderMarking:
 
     '''
 
-    #sort
-    sorted_file_marks = sorted(file_mark.items(), key=lambda x: x[1], reverse=False)
 
-    count = len(sorted_file_marks)
-    top_file_marks = sorted_file_marks[0: count/4]
-    bottom_file_marks = sorted_file_marks[count * 3/4:]
-    #print top_file_marks
-    #print bottom_file_marks
-
-    top_file_dir = self.project + '_readable'
-    self.createNewDir(top_file_dir)
-
-    for (top_file_path, mark) in top_file_marks:
-      shutil.copy(top_file_path, top_file_dir+ os.sep+ os.path.basename(top_file_path))
-
-    bottom_file_dir = self.project + '_unreadable'
-    self.createNewDir(bottom_file_dir)
-
-    for (bottom_file_path, mark) in bottom_file_marks:
-      shutil.copy(bottom_file_path, bottom_file_dir+ os.sep+ os.path.basename(bottom_file_path))
 
 
 
   def distincy(self, file_list):
+
+    print'-----distincy start from %d files -------' % len(file_list)
     md5_dict = {}
     for i in range(len(file_list) - 1, -1, -1):
       file_path = file_list[i]
@@ -200,6 +218,7 @@ class OrderMarking:
       else:
         md5_dict[md5] = file_path
 
+    print'-----distincy end with %d files -------' % len(file_list)
 
 
 if (__name__ == '__main__'):

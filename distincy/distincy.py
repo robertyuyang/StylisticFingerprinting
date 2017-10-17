@@ -68,8 +68,9 @@ if (__name__ == '__main__'):
     line_count_list.append(line_count)
 
   #stddev([5,6,8,9])
+  print str(len(line_count_list)) + " files"
   stddev(line_count_list)
-  print line_count_list
+  #print line_count_list
 
   exit()
 
